@@ -30,7 +30,34 @@ const fromUrl = async function(url)
 		const title = info.video_details.title;
 		const artist = info.video_details.channel.name;
 		const duration = info.video_details.durationInSec;
-		return new Track(url, title, artist, duration);
+		return [new Track(url, title, artist, duration)];
+	}
+	case 'yt_playlist':
+	{
+		const info = await playdl.playlist_info(url);
+
+		// User queued a playlist link
+		if (url.includes('/playlist'))
+		{
+			const videos = await info.all_videos();
+			return videos.map(video =>
+			{
+				const link = video.url;
+				const title = video.title;
+				const artist = video.channel.name;
+				const duration = video.durationInSec;
+				return new Track(link, title, artist, duration);
+			});
+		}
+		// User queued a video link with a playlist attached
+		else
+		{
+			const video = info.fetched_videos.get('1')[0];
+			const title = video.title;
+			const artist = video.channel.name;
+			const duration = video.durationInSec;
+			return [new Track(url, title, artist, duration)];
+		}
 	}
 	case 'so_track':
 	{
@@ -38,19 +65,8 @@ const fromUrl = async function(url)
 		const title = info.name;
 		const artist = info.user.name;
 		const duration = info.durationInSec;
-		return new Track(url, title, artist, duration);
+		return [new Track(url, title, artist, duration)];
 	}
-	case 'sp_track':
-	{
-		if (playdl.is_expired())
-			playdl.refreshToken();
-
-		const info = await playdl.spotify(url);
-		const title = info.name;
-		const artist = info.artists[0].name;
-		return fromYtSearch(`${artist} ${title}`);
-	}
-        // TODO: Support Deezer transitions into YouTube searches.
 	}
 };
 

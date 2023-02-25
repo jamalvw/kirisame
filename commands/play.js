@@ -53,25 +53,43 @@ module.exports = {
 
 		try
 		{
-			let track;
+			let tracks;
 			const term = interaction.options.get('term').value;
 
 			// If the term isn't a URL, search YouTube to find one
 			if (!term.includes('http'))
-				track = await fromYtSearch(term);
+				tracks = [await fromYtSearch(term)];
 			// Otherwise use the term as a URL
 			else
-				track = await fromUrl(term);
+				tracks = await fromUrl(term);
 
-			subscription.enqueue(track);
+			if (tracks.length === 0)
+				throw 'No tracks processed';
 
-			const embed = new EmbedBuilder()
-				.setColor('#77b255')
-				.setAuthor({ name: 'Added to Queue' })
-				.setDescription(track.title)
-				.setFooter({ text: `Artist: ${track.artist} · Duration: ${hhmmss(track.duration)} · Position: ${subscription.queue.length}` });
+			if (tracks.length === 1)
+			{
+				const track = tracks[0];
+				subscription.enqueue(track);
 
-			return interaction.reply({ embeds: [embed] });
+				const embed = new EmbedBuilder()
+					.setColor('#77b255')
+					.setAuthor({ name: 'Added to Queue' })
+					.setDescription(track.title)
+					.setFooter({ text: `Artist: ${track.artist} · Duration: ${hhmmss(track.duration)} · Position: ${subscription.queue.length}` });
+
+				return interaction.reply({ embeds: [embed] });
+			}
+			else
+			{
+				tracks.forEach(t => subscription.enqueue(t));
+
+				const embed = new EmbedBuilder()
+					.setColor('#77b255')
+					.setAuthor({ name: 'Added to Queue' })
+					.setDescription(`${tracks.length} tracks`);
+
+				return interaction.reply({ embeds: [embed] });
+			}
 		}
 		catch (err)
 		{
